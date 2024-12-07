@@ -26,6 +26,7 @@
           just
           openssl
           openssl.dev
+          geckodriver
         ];
       };
     });
