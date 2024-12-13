@@ -1,32 +1,33 @@
+use libsqlite3_sys::sqlite3_auto_extension;
 use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use ollama_rs::Ollama;
-use sqlx::ConnectOptions;
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
-use std::str::FromStr;
 use sqlite_vec::sqlite3_vec_init;
-use libsqlite3_sys::sqlite3_auto_extension;
-use zerocopy::{IntoBytes};
-use sqlx::Row;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
+use sqlx::ConnectOptions;
 use sqlx::Connection;
-
+use sqlx::Row;
+use std::str::FromStr;
+use zerocopy::IntoBytes;
 
 async fn run() -> anyhow::Result<()> {
-
     unsafe {
         sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())));
     }
-    
-    let mut conn = SqliteConnectOptions::from_str("sqlite::memory:")?
-    .journal_mode(SqliteJournalMode::Wal)
-    .connect().await?;
 
-    sqlx::query("create table embeds(
+    let mut conn = SqliteConnectOptions::from_str("sqlite::memory:")?
+        .journal_mode(SqliteJournalMode::Wal)
+        .connect()
+        .await?;
+
+    sqlx::query(
+        "create table embeds(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         text TEXT,
         embedding FLOAT[1024]
-    )").execute(&mut conn).await?;
-
-
+    )",
+    )
+    .execute(&mut conn)
+    .await?;
 
     let ollama = Ollama::default();
 
@@ -38,48 +39,50 @@ async fn run() -> anyhow::Result<()> {
     let mut ns = vec![];
 
     for word in words {
-        let request = GenerateEmbeddingsRequest::new("snowflake-arctic-embed2".to_string(), word.into());
+        let request =
+            GenerateEmbeddingsRequest::new("snowflake-arctic-embed2".to_string(), word.into());
         let res = ollama.generate_embeddings(request).await.unwrap();
         ns.push((word, res.embeddings[0].clone()));
     }
-
 
     let mut tx = conn.begin().await?;
     //
     //
     for (t, e) in ns.iter() {
-        let v : &[u8] = e.as_bytes();
+        let v: &[u8] = e.as_bytes();
         sqlx::query("insert into embeds(text, embedding) values(?, ?)")
-        .bind(t)
-        .bind(v)
-        .execute(&mut *tx).await?;
+            .bind(t)
+            .bind(v)
+            .execute(&mut *tx)
+            .await?;
     }
     tx.commit().await?;
 
-    let v : &[u8] = ns[0].1.as_bytes();
+    let v: &[u8] = ns[0].1.as_bytes();
 
-    let rr = sqlx::query("
+    let rr = sqlx::query(
+        "
         select text, 
             vec_distance_L2(embedding, ?) as distance,
             vec_distance_L1(embedding, ?),
             vec_distance_cosine(embedding, ?)
-        from embeds")
-        .bind(v)
-        .bind(v)
-        .bind(v)
-        .fetch_all(&mut conn).await?;
-
+        from embeds",
+    )
+    .bind(v)
+    .bind(v)
+    .bind(v)
+    .fetch_all(&mut conn)
+    .await?;
 
     for r in rr {
-        let ver : String = r.get(0);
-        let l2 : f32 = r.get(1);
-        let l1 : f32 = r.get(1);
-        let cosine : f32 = r.get(1);
+        let ver: String = r.get(0);
+        let l2: f32 = r.get(1);
+        let l1: f32 = r.get(1);
+        let cosine: f32 = r.get(1);
         println!("{} {} {} {}", ver, l2, l1, cosine);
     }
 
     Ok(())
-
 }
 
 #[cfg(test)]
@@ -92,5 +95,3 @@ mod tests {
         dbg!(r);
     }
 }
-
-
