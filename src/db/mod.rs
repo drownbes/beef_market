@@ -2,12 +2,32 @@ use libsqlite3_sys::sqlite3_auto_extension;
 use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use ollama_rs::Ollama;
 use sqlite_vec::sqlite3_vec_init;
-use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode};
-use sqlx::ConnectOptions;
+use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
+use sqlx::{ConnectOptions, Pool, Sqlite};
 use sqlx::Connection;
 use sqlx::Row;
 use std::str::FromStr;
 use zerocopy::IntoBytes;
+use sqlx::Executor;
+
+mod product;
+
+pub async fn get_sqlite_pool() -> sqlx::Result<Pool<Sqlite>>{
+    unsafe {
+        sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())));
+    }
+
+    SqlitePoolOptions::new()
+        .max_connections(5)
+        .after_connect(|conn, _meta| Box::pin(async move {
+            conn.execute("PRAGMA journal_mode=WAL;")
+            .await?;
+            Ok(())
+        }))
+        .connect("sqlite://db.db")
+        
+        .await
+}
 
 async fn run() -> anyhow::Result<()> {
     unsafe {

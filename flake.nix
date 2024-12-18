@@ -15,6 +15,7 @@
       devShells.default = pkgs.mkShell {
         shellHook = ''
           export SHELL="${pkgs.bashInteractive}/bin/bash"
+          export DATABASE_URL=sqlite://db.db
           source "${toolchain}/etc/bash_completion.d/cargo"
         '';
         nativeBuildInputs = [
@@ -22,11 +23,14 @@
         ];
         buildInputs = with pkgs;[
           toolchain
-          aoc-cli
           just
           openssl
           openssl.dev
           geckodriver
+          sqlx-cli
+          sqlite
+          sqlite-vec
+          litecli
         ];
       };
     });

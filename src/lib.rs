@@ -1,5 +1,5 @@
 mod barbora;
-mod db;
+pub mod db;
 mod rimi;
 mod selver;
 
