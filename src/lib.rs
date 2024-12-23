@@ -4,3 +4,5 @@ mod rimi;
 mod selver;
 
 mod config;
+
+mod scraper;

@@ -11,6 +11,8 @@ use zerocopy::IntoBytes;
 use sqlx::Executor;
 
 mod product;
+mod beef_cut;
+mod product_history;
 
 pub async fn get_sqlite_pool() -> sqlx::Result<Pool<Sqlite>>{
     unsafe {
