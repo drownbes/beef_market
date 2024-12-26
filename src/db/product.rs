@@ -8,7 +8,7 @@ struct ProductDB {
     embedding_model: String,
     beef_cut_id: i64,
     beef_cut_guess_confidence: i64,
-    inserted_at: u64
+    inserted_at: u64,
 }
 
 impl ProductDB {
@@ -43,5 +43,4 @@ impl ProductDB {
         .fetch_one(pool)
         .await
     }
-
 }

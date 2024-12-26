@@ -1,18 +1,15 @@
-use anyhow::{anyhow, bail, Context};
+use crate::scraper::PriceEur;
 use async_trait::async_trait;
 use reqwest::Url;
-use crate::scraper::PriceEur;
 
 use super::{Product, Scraper};
 use fantoccini::{wd::Capabilities, ClientBuilder, Locator};
+use rust_decimal::prelude::*;
 use scraper::{selectable::Selectable, Html, Selector};
 use serde_json::json;
-use rust_decimal::prelude::*;
-
-
 
 struct Barbora {
-    url: Url
+    url: Url,
 }
 
 impl Barbora {
@@ -23,38 +20,45 @@ impl Barbora {
 
         let product_cards = document.select(&product_card_sel);
 
-        let price_sel = Selector::parse(r#"div[id^="fti-product-price-category-page-"] div div:last-child"#).unwrap();
-        let product_title_sel = Selector::parse(r#"span[id^="fti-product-title-category-page-"]"#).unwrap();
+        let price_sel =
+            Selector::parse(r#"div[id^="fti-product-price-category-page-"] div div:last-child"#)
+                .unwrap();
+        let product_title_sel =
+            Selector::parse(r#"span[id^="fti-product-title-category-page-"]"#).unwrap();
 
-        let mut products = vec![];
+        Ok(product_cards
+            .filter_map(|card| {
+                let product_name: &str = card
+                    .select(&product_title_sel)
+                    .next()?
+                    .text()
+                    .nth(0)?
+                    .trim_matches('\n')
+                    .trim();
 
-        for card in product_cards {
-            let p = card.select(&price_sel).next();
-            if p.is_none() {
-                continue;
-            }
-            let prices: Vec<&str> = p.unwrap().text().collect();
-            let product_name: Vec<&str> = card
-                .select(&product_title_sel)
-                .next()
-                .unwrap()
-                .text()
-                .collect();
+                dbg!(product_name);
 
-            let name = product_name.first().unwrap().trim_matches('\n').trim();
-            let price: String = prices.first().unwrap().trim().split('\n').collect();
-            let price : String = price.strip_suffix("€/kg")
-                .ok_or(anyhow!("failed to strip kg"))?.replace(",", ".");
-            let price : Decimal = Decimal::from_str(&price).context("Failed to parse to decimal")?;
-            println!("Product: {} with price: {}", name, price);
-            products.push(Product {
-                name: name.into(),
-                price: PriceEur (price)
-            });
-            
-        }
+                let price = card
+                    .select(&price_sel)
+                    .next()?
+                    .text()
+                    .nth(0)?
+                    .strip_suffix("€/kg")?
+                    .trim()
+                    .split('\n')
+                    .nth(0)?
+                    .trim()
+                    .replace(",", ".");
 
-        Ok(products)
+                dbg!(&price);
+                let price: Decimal = Decimal::from_str(&price).ok()?;
+
+                Some(Product {
+                    name: product_name.into(),
+                    price: PriceEur(price),
+                })
+            })
+            .collect())
     }
 }
 
@@ -105,5 +109,3 @@ mod tests {
         dbg!(products);
     }
 }
-
-

@@ -3,7 +3,7 @@ use sqlx::{FromRow, SqlitePool};
 #[derive(FromRow)]
 struct BeefCutDB {
     id: Option<i64>,
-    name: String
+    name: String,
 }
 
 impl BeefCutDB {
@@ -15,8 +15,8 @@ impl BeefCutDB {
             RETURNING id
             "#,
         )
-            .bind(&self.name)
-            .fetch_one(pool)
+        .bind(&self.name)
+        .fetch_one(pool)
         .await?;
 
         Ok(inserted_id)

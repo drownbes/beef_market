@@ -1,5 +1,5 @@
-use std::time::Duration;
 use sqlx::{FromRow, SqlitePool};
+use std::time::Duration;
 
 #[derive(Debug, FromRow)]
 struct ProductHistory {
