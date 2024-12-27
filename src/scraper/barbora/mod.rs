@@ -1,6 +1,7 @@
 use crate::scraper::PriceEur;
 use async_trait::async_trait;
 use reqwest::Url;
+use tracing::{info, instrument};
 
 use super::{Product, Scraper};
 use fantoccini::{wd::Capabilities, ClientBuilder, Locator};
@@ -26,7 +27,7 @@ impl Barbora {
         let product_title_sel =
             Selector::parse(r#"span[id^="fti-product-title-category-page-"]"#).unwrap();
 
-        Ok(product_cards
+        let products: Vec<Product> = product_cards
             .filter_map(|card| {
                 let product_name: &str = card
                     .select(&product_title_sel)
@@ -35,9 +36,6 @@ impl Barbora {
                     .nth(0)?
                     .trim_matches('\n')
                     .trim();
-
-                dbg!(product_name);
-
                 let price = card
                     .select(&price_sel)
                     .next()?
@@ -49,8 +47,6 @@ impl Barbora {
                     .nth(0)?
                     .trim()
                     .replace(",", ".");
-
-                dbg!(&price);
                 let price: Decimal = Decimal::from_str(&price).ok()?;
 
                 Some(Product {
@@ -58,12 +54,16 @@ impl Barbora {
                     price: PriceEur(price),
                 })
             })
-            .collect())
+            .collect();
+
+        info!("Scraped {} beef products", products.len());
+        Ok(products)
     }
 }
 
 #[async_trait]
 impl Scraper for Barbora {
+    #[instrument(skip(self))]
     async fn run(&self) -> anyhow::Result<Vec<Product>> {
         let mut caps = Capabilities::new();
         caps.insert(
@@ -94,10 +94,13 @@ impl Scraper for Barbora {
 
 #[cfg(test)]
 mod tests {
+    use crate::logger::init_tracing;
+
     use super::*;
 
     #[tokio::test]
     async fn test_barbora_parsing() {
+        init_tracing();
         let base_url = Url::parse("https://barbora.ee/").expect("Failed to parse base_url");
 
         let path_to_beef = "/liha-kala-valmistoit/liha/veis-ja-muu-varske-liha".to_string();

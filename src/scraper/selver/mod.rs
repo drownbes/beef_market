@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use reqwest::Url;
 use rust_decimal::prelude::*;
 use scraper::{selectable::Selectable, Html, Selector};
+use tracing::{info, instrument};
 
 struct Selver {
     url: Url,
@@ -11,6 +12,7 @@ struct Selver {
 
 #[async_trait]
 impl Scraper for Selver {
+    #[instrument(skip(self))]
     async fn run(&self) -> anyhow::Result<Vec<Product>> {
         let html = reqwest::get(self.url.as_ref())
             .await
@@ -26,7 +28,7 @@ impl Scraper for Selver {
         let price_sel = Selector::parse(".ProductPrice__unit-price").unwrap();
         let product_title_sel = Selector::parse(".ProductCard__title").unwrap();
 
-        Ok(product_cards
+        let products: Vec<Product> = product_cards
             .filter_map(|card| {
                 let product_name: &str = card
                     .select(&product_title_sel)
@@ -58,7 +60,10 @@ impl Scraper for Selver {
                     price: PriceEur(price),
                 })
             })
-            .collect())
+            .collect();
+
+        info!("Scraped {} beef products", products.len());
+        Ok(products)
     }
 }
 

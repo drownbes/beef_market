@@ -1,3 +1,6 @@
+use std::process::exit;
+
+use once_cell::sync::Lazy;
 use validator::Validate;
 
 #[derive(serde::Deserialize, Clone)]
@@ -7,6 +10,7 @@ pub struct AppConfig {
     pub rimi: ShopConfig,
     pub selver: ShopConfig,
     pub barbora: ShopConfig,
+    pub geckodriver: GeckoDriver,
 }
 
 #[derive(serde::Deserialize, Clone)]
@@ -24,10 +28,21 @@ pub struct Db {
 #[derive(serde::Deserialize, Clone, Validate)]
 pub struct ShopConfig {
     #[validate(url)]
-    base_url: String,
-    #[validate(url)]
-    path_to_beef: String,
+    url: String,
 }
+
+#[derive(serde::Deserialize, Clone)]
+pub struct GeckoDriver {
+    host: String,
+    port: u16,
+}
+
+pub static CONFIG: Lazy<AppConfig> = Lazy::new(|| {
+    read_config().unwrap_or_else(|e| {
+        println!("Error loading config:\n  {e:?}\n");
+        exit(12)
+    })
+});
 
 pub fn read_config() -> Result<AppConfig, config::ConfigError> {
     let cfg = config::Config::builder()

@@ -4,6 +4,7 @@ use async_trait::async_trait;
 use reqwest::Url;
 use rust_decimal::prelude::*;
 use scraper::{selectable::Selectable, Html, Selector};
+use tracing::{info, instrument};
 
 struct Rimi {
     url: Url,
@@ -11,6 +12,7 @@ struct Rimi {
 
 #[async_trait]
 impl Scraper for Rimi {
+    #[instrument(skip(self))]
     async fn run(&self) -> anyhow::Result<Vec<Product>> {
         let html = reqwest::get(self.url.as_ref())
             .await
@@ -26,7 +28,7 @@ impl Scraper for Rimi {
         let price_sel = Selector::parse(".card__price-per").unwrap();
         let product_title_sel = Selector::parse(".card__name").unwrap();
 
-        Ok(product_cards
+        let products: Vec<Product> = product_cards
             .filter_map(|card| {
                 let product_name = card
                     .select(&product_title_sel)
@@ -51,16 +53,22 @@ impl Scraper for Rimi {
                     price: PriceEur(price),
                 })
             })
-            .collect())
+            .collect();
+
+        info!("Scraped {} beef products", products.len());
+        Ok(products)
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::logger::init_tracing;
+
     use super::*;
 
     #[tokio::test]
     async fn test_rimi_parsing() {
+        init_tracing();
         let base_url = Url::parse("https://rimi.ee/").expect("Failed to parse base_url");
 
         let path_to_beef =
