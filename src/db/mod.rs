@@ -2,11 +2,12 @@ use libsqlite3_sys::sqlite3_auto_extension;
 use ollama_rs::generation::embeddings::request::GenerateEmbeddingsRequest;
 use ollama_rs::Ollama;
 use sqlite_vec::sqlite3_vec_init;
+use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
-use sqlx::Connection;
-use sqlx::Executor;
 use sqlx::Row;
 use sqlx::{ConnectOptions, Pool, Sqlite};
+use sqlx::{Connection, SqlitePool};
+use std::path::Path;
 use std::str::FromStr;
 use zerocopy::IntoBytes;
 
@@ -14,21 +15,25 @@ mod beef_cut;
 mod product;
 mod product_history;
 
-pub async fn get_sqlite_pool() -> sqlx::Result<Pool<Sqlite>> {
+pub async fn get_sqlite_pool(conn_str: &str) -> sqlx::Result<Pool<Sqlite>> {
     unsafe {
         sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())));
     }
 
+    let options = SqliteConnectOptions::from_str(conn_str)?
+        .journal_mode(SqliteJournalMode::Wal)
+        .create_if_missing(true);
+
     SqlitePoolOptions::new()
         .max_connections(5)
-        .after_connect(|conn, _meta| {
-            Box::pin(async move {
-                conn.execute("PRAGMA journal_mode=WAL;").await?;
-                Ok(())
-            })
-        })
-        .connect("sqlite://db.db")
+        .connect_with(options)
         .await
+}
+
+pub async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
+    let m = Migrator::new(Path::new("./migrations")).await?;
+    m.run(pool).await?;
+    Ok(())
 }
 
 async fn run() -> anyhow::Result<()> {

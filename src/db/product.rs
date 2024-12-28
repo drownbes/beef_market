@@ -4,8 +4,8 @@ use sqlx::{FromRow, SqlitePool};
 struct ProductDB {
     id: Option<i64>,
     name: String,
-    embedding: Vec<u8>,
-    embedding_model: String,
+    embedding: Option<Vec<u8>>,
+    embedding_model: Option<String>,
     beef_cut_id: i64,
     beef_cut_guess_confidence: i64,
     inserted_at: u64,
