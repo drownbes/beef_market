@@ -3,14 +3,14 @@ use async_trait::async_trait;
 use reqwest::Url;
 use tracing::{info, instrument};
 
-use super::{Product, Scraper};
+use super::{Product, ScraperImpl};
 use fantoccini::{wd::Capabilities, ClientBuilder, Locator};
 use rust_decimal::prelude::*;
 use scraper::{selectable::Selectable, Html, Selector};
 use serde_json::json;
 
-struct Barbora {
-    url: Url,
+pub struct Barbora {
+    pub url: Url,
 }
 
 impl Barbora {
@@ -62,7 +62,7 @@ impl Barbora {
 }
 
 #[async_trait]
-impl Scraper for Barbora {
+impl ScraperImpl for Barbora {
     #[instrument(skip(self))]
     async fn run(&self) -> anyhow::Result<Vec<Product>> {
         let mut caps = Capabilities::new();

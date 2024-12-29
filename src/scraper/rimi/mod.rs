@@ -1,4 +1,4 @@
-use super::{Product, Scraper};
+use super::{Product, ScraperImpl};
 use crate::scraper::PriceEur;
 use async_trait::async_trait;
 use reqwest::Url;
@@ -6,12 +6,12 @@ use rust_decimal::prelude::*;
 use scraper::{selectable::Selectable, Html, Selector};
 use tracing::{info, instrument};
 
-struct Rimi {
-    url: Url,
+pub struct Rimi {
+    pub url: Url,
 }
 
 #[async_trait]
-impl Scraper for Rimi {
+impl ScraperImpl for Rimi {
     #[instrument(skip(self))]
     async fn run(&self) -> anyhow::Result<Vec<Product>> {
         let html = reqwest::get(self.url.as_ref())

@@ -7,9 +7,6 @@ use validator::Validate;
 pub struct AppConfig {
     pub db: Db,
     pub ollama: OllamaConfig,
-    pub rimi: ShopConfig,
-    pub selver: ShopConfig,
-    pub barbora: ShopConfig,
     pub geckodriver: GeckoDriver,
 }
 
@@ -23,12 +20,6 @@ pub struct OllamaConfig {
 #[derive(serde::Deserialize, Clone)]
 pub struct Db {
     path: String,
-}
-
-#[derive(serde::Deserialize, Clone, Validate)]
-pub struct ShopConfig {
-    #[validate(url)]
-    url: String,
 }
 
 #[derive(serde::Deserialize, Clone)]

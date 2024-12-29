@@ -6,14 +6,6 @@ host = "localhost"
 port = 11434
 embedding_model = "snowflake-arctic-embed2"
 
-[barbora]
-base_url = "https://barbora.ee/"
-path_to_beef = "/liha-kala-valmistoit/liha/veis-ja-muu-varske-liha"
-
-[rimi]
-base_url = "https://www.rimi.ee/"
-path_to_beef = "/epood/ee/tooted/liha--ja-kalatooted/veise--lamba--ja-ulukiliha/c/SH-8-21"
-
-[selver]
-base_url = "https://www.selver.ee/"
-path_to_beef = "/liha-ja-kalatooted/veise-lamba-ja-ulukiliha?product_segment=4725"
+[geckodriver]
+host: "localhost"
+port = 4444
