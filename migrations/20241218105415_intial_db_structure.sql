@@ -6,15 +6,12 @@ CREATE TABLE shop (
 CREATE TABLE product (
   id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
   name TEXT,
-  embedding FLOAT[1024]
-  check(
-    typeof(embedding) == 'blob'
-    and vec_length(embedding) == 1024
-  ),
+  embedding FLOAT[1024],
   embedding_model TEXT,
-  beef_cut_id INTEGER NOT NULL,
-  beef_cut_guess_confidence INTEGER NOT NULL,
-  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  beef_cut_id INTEGER,
+  beef_cut_guess_confidence INTEGER,
+  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  FOREIGN KEY(beef_cut_id) REFERENCES beef_cut(id)
 );
 
 CREATE TABLE beef_cut (

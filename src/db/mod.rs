@@ -11,10 +11,6 @@ use std::path::Path;
 use std::str::FromStr;
 use zerocopy::IntoBytes;
 
-mod beef_cut;
-mod product;
-mod product_history;
-
 pub async fn get_sqlite_pool(conn_str: &str) -> sqlx::Result<Pool<Sqlite>> {
     unsafe {
         sqlite3_auto_extension(Some(std::mem::transmute(sqlite3_vec_init as *const ())));
