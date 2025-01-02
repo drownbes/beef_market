@@ -48,6 +48,7 @@ impl ScraperImpl for Rimi {
                     .trim()
                     .replace(",", ".");
                 let price: Decimal = Decimal::from_str(&price).ok()?;
+                info!("Scraped {} with price {}", product_name, price);
                 Some(Product {
                     name: product_name.into(),
                     price: PriceEur(price),

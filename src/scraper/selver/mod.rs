@@ -38,8 +38,6 @@ impl ScraperImpl for Selver {
                     .trim_matches('\n')
                     .trim();
 
-                dbg!(&product_name);
-
                 let price = card
                     .select(&price_sel)
                     .next()?
@@ -51,9 +49,10 @@ impl ScraperImpl for Selver {
                     .nth(0)?
                     .trim()
                     .replace(",", ".");
-                dbg!(&price);
 
                 let price: Decimal = Decimal::from_str(&price).ok()?;
+
+                info!("Scraped {} with price {}", product_name, price);
 
                 Some(Product {
                     name: product_name.into(),

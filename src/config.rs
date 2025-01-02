@@ -1,31 +1,29 @@
+use once_cell::sync::Lazy;
 use std::process::exit;
 
-use once_cell::sync::Lazy;
-use validator::Validate;
-
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct AppConfig {
     pub db: Db,
     pub ollama: OllamaConfig,
     pub geckodriver: GeckoDriver,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct OllamaConfig {
     pub host: String,
     pub port: u16,
     pub embedding_model: String,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct Db {
-    path: String,
+    pub conn_str: String,
 }
 
-#[derive(serde::Deserialize, Clone)]
+#[derive(serde::Deserialize, Clone, Debug)]
 pub struct GeckoDriver {
-    host: String,
-    port: u16,
+    pub host: String,
+    pub port: u16,
 }
 
 pub static CONFIG: Lazy<AppConfig> = Lazy::new(|| {

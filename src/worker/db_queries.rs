@@ -4,11 +4,72 @@ use crate::scraper::{Product, Scraper};
 use sqlx::Row;
 use sqlx::SqlitePool;
 
-pub async fn insert_product(
+pub struct ProductWithoutEmbedingDb {
+    pub id: i64,
+    pub name: String,
+}
+
+pub async fn get_products_without_embedings(
+    pool: &SqlitePool,
+) -> Result<Vec<ProductWithoutEmbedingDb>, sqlx::Error> {
+    let res = sqlx::query(
+        r#"
+        SELECT id, name FROM product 
+        WHERE embedding is null
+        LIMIT 10
+    "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(res
+        .iter()
+        .map(|r| ProductWithoutEmbedingDb {
+            id: r.get(0),
+            name: r.get(1),
+        })
+        .collect())
+}
+
+pub async fn insert_embedding(
+    pool: &SqlitePool,
+    product_id: i64,
+    embedding: &[u8],
+    embedding_model: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        update product set embedding=?, embedding_model=?
+        where id=?
+    "#,
+    )
+    .bind(embedding)
+    .bind(embedding_model)
+    .bind(product_id)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
+pub async fn insert_or_get_product(
     trx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
-    scraper: &Scraper,
     product: &Product,
-) -> Result<(i64, i64), sqlx::Error> {
+) -> Result<i64, sqlx::Error> {
+    let product_id: Option<i64> = sqlx::query_scalar(
+        r#"
+        SELECT id FROM product 
+        WHERE name = ?
+    "#,
+    )
+    .bind(&product.name)
+    .fetch_optional(&mut **trx)
+    .await?;
+
+    if let Some(id) = product_id {
+        return Ok(id);
+    }
+
     let product_id: i64 = sqlx::query_scalar(
         r#"
             INSERT INTO product (name)
@@ -19,6 +80,15 @@ pub async fn insert_product(
     .bind(&product.name)
     .fetch_one(&mut **trx)
     .await?;
+    Ok(product_id)
+}
+
+pub async fn insert_product(
+    trx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
+    scraper: &Scraper,
+    product: &Product,
+) -> Result<(i64, i64), sqlx::Error> {
+    let product_id: i64 = insert_or_get_product(trx, product).await?;
 
     let product_history_id: i64 = sqlx::query_scalar(
         r#"

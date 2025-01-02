@@ -1,19 +1,39 @@
 mod db_queries;
 use crate::clock::Clock;
+use crate::ollama::OllamaRunner;
 use crate::scraper::Scraper;
-use db_queries::{get_latest_run, insert_products};
+use db_queries::{
+    get_latest_run, get_products_without_embedings, insert_embedding, insert_products, insert_run,
+};
 use sqlx::SqlitePool;
+use tracing::info;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
+use zerocopy::IntoBytes;
 
-struct Worker {
+pub struct Worker {
     clock: Arc<Mutex<dyn Clock>>,
     pool: SqlitePool,
+    ollama: Arc<Mutex<OllamaRunner>>,
     scrapers: Vec<Scraper>,
 }
 
 impl Worker {
+    pub fn new(
+        clock: Arc<Mutex<dyn Clock>>,
+        pool: SqlitePool,
+        ollama: Arc<Mutex<OllamaRunner>>,
+        scrapers: Vec<Scraper>,
+    ) -> Worker {
+        Worker {
+            clock,
+            pool,
+            ollama,
+            scrapers,
+        }
+    }
+
     async fn is_time_to_run(&self) -> Result<bool, sqlx::Error> {
         let last_run_ts = get_latest_run(&self.pool).await?;
         let now: Duration = self.clock.lock().await.utc();
@@ -25,20 +45,57 @@ impl Worker {
         }
     }
 
-    async fn worker_loop(&self) -> anyhow::Result<()> {
+    pub async fn worker_loop(&self) -> anyhow::Result<()> {
+        info!("Starting worker loop");
         loop {
-            tokio::time::sleep(Duration::from_secs(60)).await;
             if self.is_time_to_run().await? {
-                self.do_work().await?;
+                info!("Time to do scraping");
+                self.do_scraping().await?;
             }
+
+            self.do_embeddins().await?;
+            tokio::time::sleep(Duration::from_secs(60)).await;
         }
     }
 
-    async fn do_work(&self) -> anyhow::Result<()> {
+    async fn do_scraping(&self) -> anyhow::Result<()> {
+        let started : Duration = self.clock.lock().await.utc();
         for scraper in self.scrapers.iter() {
             let products = scraper.run().await?;
             insert_products(&self.pool, scraper, &products).await?;
         }
+        let finished : Duration = self.clock.lock().await.utc();
+        insert_run(&self.pool, started, finished).await?;
+        info!("Scraping finished");
+        Ok(())
+    }
+
+    async fn do_embeddins(&self) -> anyhow::Result<()> {
+
+        info!("Embedding processing started");
+        loop {
+            let prds = get_products_without_embedings(&self.pool).await?;
+
+            info!("Found products {} without empbedding", prds.len());
+            if prds.is_empty() {
+                break;
+            }
+
+            for product in prds {
+                let ollama = self.ollama.lock().await;
+                let embedding = ollama.create_embedding(&product.name).await?;
+
+                info!("Processed embedding for {}", &product.name);
+                insert_embedding(
+                    &self.pool,
+                    product.id,
+                    embedding.as_bytes(),
+                    &ollama.embedding_model,
+                )
+                .await?;
+            }
+        }
+
         Ok(())
     }
 }

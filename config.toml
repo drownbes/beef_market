@@ -1,11 +1,11 @@
 [db]
-path = "./db.sqlite"
+conn_str = "./db.sqlite"
 
 [ollama]
-host = "localhost"
+host = "127.0.0.1"
 port = 11434
 embedding_model = "snowflake-arctic-embed2"
 
 [geckodriver]
-host: "localhost"
+host = "127.0.0.1"
 port = 4444
