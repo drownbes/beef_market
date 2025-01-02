@@ -6,10 +6,10 @@ use db_queries::{
     get_latest_run, get_products_without_embedings, insert_embedding, insert_products, insert_run,
 };
 use sqlx::SqlitePool;
-use tracing::info;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
+use tracing::info;
 use zerocopy::IntoBytes;
 
 pub struct Worker {
@@ -59,19 +59,18 @@ impl Worker {
     }
 
     async fn do_scraping(&self) -> anyhow::Result<()> {
-        let started : Duration = self.clock.lock().await.utc();
+        let started: Duration = self.clock.lock().await.utc();
         for scraper in self.scrapers.iter() {
             let products = scraper.run().await?;
             insert_products(&self.pool, scraper, &products).await?;
         }
-        let finished : Duration = self.clock.lock().await.utc();
+        let finished: Duration = self.clock.lock().await.utc();
         insert_run(&self.pool, started, finished).await?;
         info!("Scraping finished");
         Ok(())
     }
 
     async fn do_embeddins(&self) -> anyhow::Result<()> {
-
         info!("Embedding processing started");
         loop {
             let prds = get_products_without_embedings(&self.pool).await?;

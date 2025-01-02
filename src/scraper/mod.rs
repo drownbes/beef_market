@@ -1,8 +1,6 @@
 mod barbora;
 mod rimi;
 mod selver;
-use std::sync::Arc;
-
 use async_trait::async_trait;
 use barbora::Barbora;
 use reqwest::Url;
@@ -82,7 +80,7 @@ pub async fn get_scrapers(pool: &SqlitePool) -> Result<Vec<Scraper>, sqlx::Error
     for row in rows {
         let url: String = row.get(2);
         let url = Url::parse(&url).unwrap();
-        let imp : Box<dyn ScraperImpl + Send + Sync> = match row.get(3) {
+        let imp: Box<dyn ScraperImpl + Send + Sync> = match row.get(3) {
             "rimi" => Box::new(Rimi { url }),
             "selver" => Box::new(Selver { url }),
             "barbora" => Box::new(Barbora { url }),

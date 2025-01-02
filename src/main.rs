@@ -1,7 +1,13 @@
 use std::sync::Arc;
 
 use beef_market::{
-    clock::DefaultClock, config::read_config, db::{get_sqlite_pool, run_migrations}, logger::init_tracing, ollama::OllamaRunner, scraper::get_scrapers, worker::Worker
+    clock::DefaultClock,
+    config::read_config,
+    db::{get_sqlite_pool, run_migrations},
+    logger::init_tracing,
+    ollama::OllamaRunner,
+    scraper::get_scrapers,
+    worker::Worker,
 };
 use tokio::sync::Mutex;
 
@@ -18,9 +24,7 @@ async fn main() -> anyhow::Result<()> {
 
     let worker = Worker::new(clock, pool, ollama_runner, scrapers);
 
-    let res = tokio::spawn(async move {
-        worker.worker_loop().await
-    }).await;
+    let res = tokio::spawn(async move { worker.worker_loop().await }).await;
 
     dbg!(&res);
 
