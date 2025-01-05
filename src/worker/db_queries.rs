@@ -4,14 +4,57 @@ use crate::scraper::{Product, Scraper};
 use sqlx::Row;
 use sqlx::SqlitePool;
 
-pub struct ProductWithoutEmbedingDb {
+pub struct ProductWithoutInfoDb {
     pub id: i64,
     pub name: String,
 }
 
+pub async fn get_products_without_beef_cut(
+    pool: &SqlitePool,
+) -> Result<Vec<ProductWithoutInfoDb>, sqlx::Error> {
+    let res = sqlx::query(
+        r#"
+        SELECT id, name FROM product 
+        WHERE beef_cut is null
+        LIMIT 10
+    "#,
+    )
+    .fetch_all(pool)
+    .await?;
+
+    Ok(res
+        .iter()
+        .map(|r| ProductWithoutInfoDb {
+            id: r.get(0),
+            name: r.get(1),
+        })
+        .collect())
+}
+
+pub async fn insert_beef_cut(
+    pool: &SqlitePool,
+    product_id: i64,
+    beef_cut: &str,
+    confidence: i64,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        r#"
+        update product set beef_cut=?, beef_cut_guess_confidence=?
+        where id=?
+    "#,
+    )
+    .bind(beef_cut)
+    .bind(confidence)
+    .bind(product_id)
+    .execute(pool)
+    .await?;
+
+    Ok(())
+}
+
 pub async fn get_products_without_embedings(
     pool: &SqlitePool,
-) -> Result<Vec<ProductWithoutEmbedingDb>, sqlx::Error> {
+) -> Result<Vec<ProductWithoutInfoDb>, sqlx::Error> {
     let res = sqlx::query(
         r#"
         SELECT id, name FROM product 
@@ -24,7 +67,7 @@ pub async fn get_products_without_embedings(
 
     Ok(res
         .iter()
-        .map(|r| ProductWithoutEmbedingDb {
+        .map(|r| ProductWithoutInfoDb {
             id: r.get(0),
             name: r.get(1),
         })

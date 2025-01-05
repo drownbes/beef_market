@@ -3,7 +3,8 @@ use crate::clock::Clock;
 use crate::ollama::OllamaRunner;
 use crate::scraper::Scraper;
 use db_queries::{
-    get_latest_run, get_products_without_embedings, insert_embedding, insert_products, insert_run,
+    get_latest_run, get_products_without_beef_cut, get_products_without_embedings, insert_beef_cut,
+    insert_embedding, insert_products, insert_run,
 };
 use sqlx::SqlitePool;
 use std::sync::Arc;
@@ -54,6 +55,7 @@ impl Worker {
             }
 
             self.do_embeddins().await?;
+            self.do_beef_cut_detection().await?;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
     }
@@ -92,6 +94,28 @@ impl Worker {
                     &ollama.embedding_model,
                 )
                 .await?;
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn do_beef_cut_detection(&self) -> anyhow::Result<()> {
+        info!("Beef cut detection started");
+        loop {
+            let prds = get_products_without_beef_cut(&self.pool).await?;
+
+            info!("Found products {} without beef_cut", prds.len());
+            if prds.is_empty() {
+                break;
+            }
+
+            for product in prds {
+                let ollama = self.ollama.lock().await;
+                if let Some((cut, confidence)) = ollama.guess_beef_cut(&product.name).await? {
+                    info!("Processed beef_cut for {}", &product.name);
+                    insert_beef_cut(&self.pool, product.id, &cut, confidence).await?;
+                }
             }
         }
 

@@ -31,11 +31,27 @@ impl OllamaRunner {
 
     pub async fn generate(&self, prompt: &str, message: &str) -> anyhow::Result<Option<String>> {
         let msg = format!("{} \n\n {}", prompt, message);
-        let request = ChatMessageRequest::new("llama3.1:8b".to_string(), 
-            vec![ChatMessage::user(msg.to_string())]
+        let request = ChatMessageRequest::new(
+            "llama3.1:8b".to_string(),
+            vec![ChatMessage::user(msg.to_string())],
         );
         let res = self.ollama.send_chat_messages(request).await?;
         Ok(res.message.map(|x| x.content))
+    }
+
+    pub async fn guess_beef_cut(&self, name: &str) -> anyhow::Result<Option<(String, i64)>> {
+        let answer_str = self.generate(PROMPT, name).await?;
+        let res = answer_str.and_then(|ans| {
+            if ans.trim() == "NOPE" {
+                None
+            } else {
+                let mut parts = ans.split(",");
+                let cut = parts.next()?.trim();
+                let per: i64 = parts.next()?.trim().parse().ok()?;
+                Some((cut.to_string(), per))
+            }
+        });
+        Ok(res)
     }
 }
 
@@ -56,7 +72,7 @@ Mahe rohumaaveise küljesteik, LINNAMÄE LIHATÖÖSTUS, 280 g
 Your answer:
 Skirt Steak, 95 
 
-Remember that is important. Your mother would be fucked by the ugly ape if you add comments. You should always answer in format: Beef cut, confidence level. And remember don't comment anything, just answer.
+Remember that is important. Your mother would be fucked by the ugly ape if you add comments. You should always answer in format: Beef cut, confidence level. And remember don't comment anything, just answer. If product is not beef cut answer NOPE.
 ";
 
 #[cfg(test)]
@@ -64,16 +80,30 @@ mod tests {
     use super::*;
 
     #[tokio::test]
+    async fn test_generate() {
+        let ollama = OllamaRunner::new(&OllamaConfig {
+            host: "127.0.0.1".into(),
+            port: 11434,
+            embedding_model: "snowflake-arctic-embed2".into(),
+        });
+        let answer = ollama
+            .generate(PROMPT, "Veise antrekoot, RAKVERE LK, kg")
+            .await
+            .unwrap();
+        dbg!(answer);
+    }
+
+    #[tokio::test]
     async fn test_beef_cut_detector() {
         let ollama = OllamaRunner::new(&OllamaConfig {
             host: "127.0.0.1".into(),
             port: 11434,
-            embedding_model: "snowflake-arctic-embed2".into()
-
-
+            embedding_model: "snowflake-arctic-embed2".into(),
         });
-        let answer = ollama.generate(PROMPT, "Veise antrekoot, RAKVERE LK, kg").await.unwrap();
+        let answer = ollama
+            .guess_beef_cut("Veise antrekoot, RAKVERE LK, kg")
+            .await
+            .unwrap();
         dbg!(answer);
-        
     }
 }

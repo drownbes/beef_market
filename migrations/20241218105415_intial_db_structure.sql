@@ -8,15 +8,9 @@ CREATE TABLE product (
   name TEXT,
   embedding FLOAT[1024],
   embedding_model TEXT,
-  beef_cut_id INTEGER,
+  beef_cut TEXT,
   beef_cut_guess_confidence INTEGER,
-  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  FOREIGN KEY(beef_cut_id) REFERENCES beef_cut(id)
-);
-
-CREATE TABLE beef_cut (
-  id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-  name TEXT
+  inserted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
 
 CREATE TABLE product_history (
