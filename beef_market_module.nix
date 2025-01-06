@@ -1,6 +1,22 @@
 { config, lib, pkgs, ... }:
 let
   cfg = config.services.beef_market;
+
+  ollama = config.services.ollama;
+
+  appConfig = pkgs.writeFile "config.toml" ''
+    [db]
+    conn_str = "${cfg.stateDir}/db.sqlite"
+    
+    [ollama]
+    host = "${ollama.host}"
+    port = ${ollama.port}
+    embedding_model = "${cfg.embeddingModel}
+    
+    [geckodriver]
+    host = "127.0.0.1"
+    port = 4444
+  '';
 in
 {
   options.services.beef_market = {
@@ -9,6 +25,14 @@ in
       default = false;
       description = ''
         Enables example module with two systemd services (serviceA and serviceB).
+      '';
+    };
+
+    embeddingModel = lib.mkOption {
+      type = lib.types.str;
+      default = "snowflake-arctic-embed2";
+      description = ''
+        The model use for embeddings
       '';
     };
 
@@ -38,6 +62,12 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions =
+      [ { assertion = ollama.enable;
+          message = "Ollama service should be enabled";
+        }
+      ];
+
     users.users.${cfg.user} = {
       isSystemUser = true;
       group = cfg.group;

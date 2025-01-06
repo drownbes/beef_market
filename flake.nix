@@ -11,7 +11,16 @@
   outputs = { self, fenix, flake-utils, nixpkgs }: 
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      toolchain = fenix.packages.${system}.stable.completeToolchain; in {
+      toolchain = fenix.packages.${system}.stable.completeToolchain; 
+      rustPlatform = (pkgs.makeRustPlatform {
+        cargo = toolchain;
+        rustc = toolchain;
+      });
+    in {
+      
+      nixosModules.beef_market = import ./beef_market_module.nix;
+      packages.beef_market = pkgs.callPackage ./beef_market.nix { inherit rustPlatform; };
+
       devShells.default = pkgs.mkShell {
         shellHook = ''
           export SHELL="${pkgs.bashInteractive}/bin/bash"
