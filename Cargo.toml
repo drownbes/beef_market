@@ -36,5 +36,5 @@ name = "migrator"
 path = "src/migrator/main.rs"
 
 [[bin]]
-name = "beff_market"
+name = "beef_market"
 path = "src/main.rs"

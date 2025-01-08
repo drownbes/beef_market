@@ -10,16 +10,30 @@
 
   outputs = { self, fenix, flake-utils, nixpkgs }: 
     flake-utils.lib.eachDefaultSystem (system: let
-      pkgs = nixpkgs.legacyPackages.${system};
+      overlay = final: prev: {
+          beef_market = self.packages.${system}.beef_market;
+      };
+      pkgs = nixpkgs.legacyPackages.${system}.extend overlay;
       toolchain = fenix.packages.${system}.stable.completeToolchain; 
       rustPlatform = (pkgs.makeRustPlatform {
         cargo = toolchain;
         rustc = toolchain;
       });
+      
     in {
       
-      nixosModules.beef_market = import ./beef_market_module.nix;
+      nixosModules = {
+        beef_market = import ./beef_market_module.nix;
+        geckodriver = import ./geckodriver_module.nix;
+      };
       packages.beef_market = pkgs.callPackage ./beef_market.nix { inherit rustPlatform; };
+
+
+      packages.test = pkgs.callPackage ./test.nix {inherit self;};
+
+      checks = {
+        nixosTest = pkgs.callPackage ./test.nix {inherit self;};
+      };
 
       devShells.default = pkgs.mkShell {
         shellHook = ''
