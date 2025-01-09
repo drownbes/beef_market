@@ -54,6 +54,9 @@
           sqlite
           sqlite-vec
           litecli
+          (pkgs.python3.withPackages (python-pkgs: [
+            python-pkgs.selenium
+          ]))
         ];
       };
     });

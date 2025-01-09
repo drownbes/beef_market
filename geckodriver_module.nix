@@ -39,7 +39,7 @@ in {
         "network.target"
       ];
       serviceConfig = {
-        ExecStart = "${pkgs.geckodriver}/bin/geckodriver";
+        ExecStart = "${pkgs.geckodriver}/bin/geckodriver --host 0.0.0.0";
         Restart = "always";
         User = cfg.user;
         Group = cfg.user;

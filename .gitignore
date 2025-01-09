@@ -2,3 +2,4 @@
 db.db
 db.*
 result**
+.nixos-test-history
