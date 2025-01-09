@@ -1,5 +1,4 @@
-use once_cell::sync::Lazy;
-use std::process::exit;
+use std::path::Path;
 
 #[derive(serde::Deserialize, Clone, Debug)]
 pub struct AppConfig {
@@ -26,16 +25,9 @@ pub struct GeckoDriver {
     pub port: u16,
 }
 
-pub static CONFIG: Lazy<AppConfig> = Lazy::new(|| {
-    read_config().unwrap_or_else(|e| {
-        println!("Error loading config:\n  {e:?}\n");
-        exit(12)
-    })
-});
-
-pub fn read_config() -> Result<AppConfig, config::ConfigError> {
+pub fn read_config(cfg_path: &Path) -> Result<AppConfig, config::ConfigError> {
     let cfg = config::Config::builder()
-        .add_source(config::File::with_name("config"))
+        .add_source(config::File::from(cfg_path))
         .build()?;
 
     cfg.try_deserialize()
@@ -47,6 +39,6 @@ mod tests {
 
     #[test]
     fn test_read_config() {
-        let _c = read_config().unwrap();
+        let _c = read_config(Path::new("config")).unwrap();
     }
 }

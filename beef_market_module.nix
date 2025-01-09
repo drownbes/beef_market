@@ -3,22 +3,27 @@ let
   cfg = config.services.beef_market;
 
   ollama = config.services.ollama;
+  geckodriver = config.services.geckodriver;
 
-  appConfig = pkgs.writeFile "config.toml" ''
+  appConfig = pkgs.writeText "config.toml" ''
     [db]
     conn_str = "${cfg.stateDir}/db.sqlite"
     
     [ollama]
     host = "${ollama.host}"
-    port = ${ollama.port}
-    embedding_model = "${cfg.embeddingModel}
+    port = ${toString ollama.port}
+    embedding_model = "${cfg.embeddingModel}"
     
     [geckodriver]
-    host = "127.0.0.1"
-    port = 4444
+    host = "${geckodriver.host}"
+    port = ${toString geckodriver.port}
   '';
 in
 {
+  imports = [
+    ./geckodriver_module.nix
+  ];
+
   options.services.beef_market = {
     enable = lib.mkOption {
       type = lib.types.bool;
@@ -46,7 +51,7 @@ in
 
     group = lib.mkOption {
       type = lib.types.str;
-      default = "beef_market";
+      default = cfg.user;
       description = ''
         The system group under which beef_market will run.
       '';
@@ -68,23 +73,22 @@ in
         }
       ];
 
+    services.ollama = {
+      enable = true;
+    };
+
+    services.geckodriver = {
+      enable = true;
+    };
+
     users.users.${cfg.user} = {
       isSystemUser = true;
+      createHome = true;
       group = cfg.group;
+      home = "/var/lib/beef_market";
     };
 
     users.groups.${cfg.group} = {};
-
-    systemd.services.geckodriver = {
-      description = "Geckodriver for scraping and automating";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.geckodriver}/bin/geckodriver";
-        Restart = "always";
-        ProtectSystem = "strict";
-        ProtectHome = "yes";
-      };
-    };
 
     systemd.services.beef_market = {
       description = "Tallinn Beef market price tracker";
@@ -92,11 +96,9 @@ in
       requires = [ "geckodriver.service" ];
       wantedBy = [ "multi-user.target" ];
       serviceConfig = {
-        ExecStart = "${pkgs.beef_market}/bin/beef_market";
+        ExecStart = "${pkgs.beef_market}/bin/beef_market ${appConfig}";
         Restart = "always";
         WorkingDir = "/var/lib/beef_market";
-        ProtectSystem = "strict";
-        ProtectHome = "yes";
       };
     };
   };

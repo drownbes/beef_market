@@ -29,10 +29,11 @@
       packages.beef_market = pkgs.callPackage ./beef_market.nix { inherit rustPlatform; };
 
 
-      packages.test = pkgs.callPackage ./test.nix {inherit self;};
+      packages.test = pkgs.callPackage ./test_beef_market.nix {inherit self;};
 
       checks = {
-        nixosTest = pkgs.callPackage ./test.nix {inherit self;};
+        #geckodriverTest = pkgs.callPackage ./test_geckodriver.nix {inherit self;};
+        beefMarketText = pkgs.callPackage ./test_beef_market.nix {inherit self;};
       };
 
       devShells.default = pkgs.mkShell {

@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{env, path::Path, sync::Arc};
 
 use beef_market::{
     clock::DefaultClock,
@@ -13,9 +13,11 @@ use tokio::sync::Mutex;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    init_tracing();
-    let config = read_config()?;
+    let args: Vec<String> = env::args().collect();
+    let cfg_path = Path::new(&args[1]);
+    let config = read_config(cfg_path)?;
     dbg!(&config);
+    init_tracing();
     let pool = get_sqlite_pool(&config.db.conn_str).await?;
     run_migrations(&pool).await?;
     let ollama_runner = Arc::new(Mutex::new(OllamaRunner::new(&config.ollama)));

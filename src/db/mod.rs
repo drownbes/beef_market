@@ -1,10 +1,8 @@
 use libsqlite3_sys::sqlite3_auto_extension;
 use sqlite_vec::sqlite3_vec_init;
-use sqlx::migrate::Migrator;
 use sqlx::sqlite::{SqliteConnectOptions, SqliteJournalMode, SqlitePoolOptions};
 use sqlx::SqlitePool;
 use sqlx::{Pool, Sqlite};
-use std::path::Path;
 use std::str::FromStr;
 
 pub async fn get_sqlite_pool(conn_str: &str) -> sqlx::Result<Pool<Sqlite>> {
@@ -30,7 +28,6 @@ pub async fn get_sqlite_pool(conn_str: &str) -> sqlx::Result<Pool<Sqlite>> {
 }
 
 pub async fn run_migrations(pool: &SqlitePool) -> anyhow::Result<()> {
-    let m = Migrator::new(Path::new("./migrations")).await?;
-    m.run(pool).await?;
+    sqlx::migrate!("./migrations").run(pool).await?;
     Ok(())
 }

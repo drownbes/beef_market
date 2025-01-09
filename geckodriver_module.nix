@@ -18,6 +18,24 @@ in {
         The system user under which geckodriver will run.
       '';
     };
+
+    host = lib.mkOption {
+      type = lib.types.str;
+      default = "127.0.0.1";
+      example = "[::]";
+      description = ''
+          The host address which the geckodriver server HTTP interface listens to.
+      '';
+    };
+
+    port = lib.mkOption {
+      type = lib.types.port;
+      default = 4444;
+      example = 4444;
+      description = ''
+          Which port the geckodriver server listens to.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -39,7 +57,7 @@ in {
         "network.target"
       ];
       serviceConfig = {
-        ExecStart = "${pkgs.geckodriver}/bin/geckodriver --host 0.0.0.0";
+        ExecStart = "${pkgs.geckodriver}/bin/geckodriver --host ${cfg.host} --port ${toString cfg.port}";
         Restart = "always";
         User = cfg.user;
         Group = cfg.user;

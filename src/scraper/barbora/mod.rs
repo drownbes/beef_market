@@ -71,7 +71,9 @@ impl ScraperImpl for Barbora {
         caps.insert(
             "moz:firefoxOptions".to_string(),
             json!({
-            "args": ["-headless"]
+            "args": ["-headless"],
+            //TODO: move it to config
+            "binary": "/run/current-system/sw/bin/firefox"
             }),
         );
 
