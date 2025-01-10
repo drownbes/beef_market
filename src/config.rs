@@ -12,6 +12,7 @@ pub struct OllamaConfig {
     pub host: String,
     pub port: u16,
     pub embedding_model: String,
+    pub chat_model: String
 }
 
 #[derive(serde::Deserialize, Clone, Debug)]

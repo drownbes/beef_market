@@ -13,6 +13,7 @@ let
     host = "${ollama.host}"
     port = ${toString ollama.port}
     embedding_model = "${cfg.embeddingModel}"
+    chat_model = "${cfg.chatModel}"
     
     [geckodriver]
     host = "${geckodriver.host}"
@@ -38,6 +39,14 @@ in
       default = "snowflake-arctic-embed2";
       description = ''
         The model use for embeddings
+      '';
+    };
+
+    chatModel = lib.mkOption {
+      type = lib.types.str;
+      default = "llama3.1:8b";
+      description = ''
+        The model for chat 
       '';
     };
 

@@ -5,6 +5,7 @@ conn_str = "./db.sqlite"
 host = "127.0.0.1"
 port = 11434
 embedding_model = "snowflake-arctic-embed2"
+chat_model = "llama3.1:8b"
 
 [geckodriver]
 host = "127.0.0.1"

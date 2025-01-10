@@ -9,6 +9,7 @@ use crate::config::OllamaConfig;
 pub struct OllamaRunner {
     ollama: Ollama,
     pub embedding_model: String,
+    pub chat_model: String
 }
 
 impl OllamaRunner {
@@ -17,6 +18,7 @@ impl OllamaRunner {
         OllamaRunner {
             ollama,
             embedding_model: cfg.embedding_model.clone(),
+            chat_model: cfg.chat_model.clone(),
         }
     }
 
@@ -32,7 +34,7 @@ impl OllamaRunner {
     pub async fn generate(&self, prompt: &str, message: &str) -> anyhow::Result<Option<String>> {
         let msg = format!("{} \n\n {}", prompt, message);
         let request = ChatMessageRequest::new(
-            "llama3.1:8b".to_string(),
+            self.chat_model.to_string(),
             vec![ChatMessage::user(msg.to_string())],
         );
         let res = self.ollama.send_chat_messages(request).await?;
