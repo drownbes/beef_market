@@ -104,6 +104,7 @@ in
       after = [ "geckodriver.service" ];
       requires = [ "geckodriver.service" ];
       wantedBy = [ "multi-user.target" ];
+      environment.RUST_LOG = "info";
       serviceConfig = {
         ExecStart = "${pkgs.beef_market}/bin/beef_market ${appConfig}";
         Restart = "always";
