@@ -10,7 +10,7 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::sync::Mutex;
-use tracing::info;
+use tracing::{error, info};
 use zerocopy::IntoBytes;
 
 pub struct Worker {
@@ -51,23 +51,35 @@ impl Worker {
         loop {
             if self.is_time_to_run().await? {
                 info!("Time to do scraping");
-                self.do_scraping().await?;
+                self.do_scraping().await.or_else(|e| { 
+                    error!("Failed to scrape, will retry next time: {}", e);
+                    anyhow::Ok(())
+                })?;
             }
 
-            self.do_embeddins().await?;
-            self.do_beef_cut_detection().await?;
+            self.do_embeddins().await.or_else(|e| { 
+                error!("Failed to do embedings, will retry next time: {}", e);
+                anyhow::Ok(())
+            })?;
+
+            self.do_beef_cut_detection().await.or_else(|e| { 
+                error!("Failed to do beef cut guessing, will retry next time: {}", e);
+                anyhow::Ok(())
+            })?;
             tokio::time::sleep(Duration::from_secs(60)).await;
         }
     }
 
     async fn do_scraping(&self) -> anyhow::Result<()> {
         let started: Duration = self.clock.lock().await.utc();
+        let mut trx = self.pool.begin().await?;
         for scraper in self.scrapers.iter() {
-            let products = scraper.run().await?;
-            insert_products(&self.pool, scraper, &products).await?;
+            let products =  scraper.run().await?;
+            insert_products(&mut trx, scraper, &products).await?;
         }
         let finished: Duration = self.clock.lock().await.utc();
-        insert_run(&self.pool, started, finished).await?;
+        insert_run(&mut trx, started, finished).await?;
+        trx.commit().await?;
         info!("Scraping finished");
         Ok(())
     }

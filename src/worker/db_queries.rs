@@ -148,21 +148,16 @@ pub async fn insert_product(
 }
 
 pub async fn insert_products(
-    pool: &SqlitePool,
+    trx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     scraper: &Scraper,
     products: &[Product],
 ) -> Result<Vec<(i64, i64)>, sqlx::Error> {
-    let mut trx = pool.begin().await?;
-
     let mut inserted = vec![];
 
     for product in products.iter() {
-        let ids = insert_product(&mut trx, scraper, product).await?;
+        let ids = insert_product(trx, scraper, product).await?;
         inserted.push(ids);
     }
-
-    trx.commit().await?;
-
     Ok(inserted)
 }
 
@@ -181,7 +176,7 @@ pub async fn get_latest_run(pool: &SqlitePool) -> Result<Option<Duration>, sqlx:
 }
 
 pub async fn insert_run(
-    pool: &SqlitePool,
+    trx: &mut sqlx::Transaction<'_, sqlx::Sqlite>,
     started: Duration,
     finished: Duration,
 ) -> Result<u64, sqlx::Error> {
@@ -195,13 +190,14 @@ pub async fn insert_run(
     )
     .bind(started)
     .bind(finished)
-    .fetch_one(pool)
+    .fetch_one(&mut **trx)
     .await
 }
 
 #[cfg(test)]
 mod tests {
     use rust_decimal_macros::dec;
+    use sqlx::Acquire;
 
     use crate::{
         clock::{Clock, DefaultClock},
@@ -227,8 +223,10 @@ mod tests {
         let finished = started.saturating_add(Duration::from_secs(10));
         let started2 = started.saturating_add(Duration::from_secs(4000));
         let finished2 = started2.saturating_add(Duration::from_secs(10));
-        let _id = insert_run(&pool, started, finished).await.unwrap();
-        let _id2 = insert_run(&pool, started2, finished2).await.unwrap();
+        let mut trx = pool.begin().await;
+        let _id = insert_run(&mut trx, started, finished).await.unwrap();
+        let _id2 = insert_run(&mut trx, started2, finished2).await.unwrap();
+        trx.commit().await.unwrap();
         let latest_finish = get_latest_run(&pool).await.unwrap();
 
         assert_eq!(latest_finish.unwrap().as_secs(), finished2.as_secs());
@@ -269,9 +267,12 @@ mod tests {
                 price: PriceEur(dec!(19.24)),
             },
         ];
-        let inserted = insert_products(&pool, &scrapers[0], &product)
+        let mut trx = pool.begin().await; 
+        let inserted = insert_products(&mut trx, &scrapers[0], &product)
             .await
             .unwrap();
+
+        trx.commit().await.unwrap();
 
         assert_eq!(vec![(1, 1), (2, 2)], inserted)
     }
