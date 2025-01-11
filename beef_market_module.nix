@@ -101,7 +101,7 @@ in
 
     systemd.services.beef_market = {
       description = "Tallinn Beef market price tracker";
-      after = [ "geckodriver.service" ];
+      after = [ "geckodriver.service" "network.target"];
       requires = [ "geckodriver.service" ];
       wantedBy = [ "multi-user.target" ];
       environment.RUST_LOG = "info";
