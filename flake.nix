@@ -21,13 +21,7 @@
       });
       
     in {
-      
-      nixosModules = {
-        beef_market = import ./beef_market_module.nix;
-        geckodriver = import ./geckodriver_module.nix;
-      };
       packages.beef_market = pkgs.callPackage ./beef_market.nix { inherit rustPlatform; };
-
 
       packages.test = pkgs.callPackage ./test_beef_market.nix {inherit self;};
 
@@ -60,5 +54,10 @@
           ]))
         ];
       };
-    });
+    }) // {
+     nixosModules = {
+        beef_market = import ./beef_market_module.nix;
+        geckodriver = import ./geckodriver_module.nix;
+      };
+    };
 }

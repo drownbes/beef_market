@@ -3,7 +3,7 @@ pkgs.nixosTest {
   name = "beef_market_test";
   nodes.machine = { config, pkgs, ... }: {
     imports = [
-      self.nixosModules.x86_64-linux.beef_market
+      self.nixosModules.beef_market
     ];
 
     services.beef_market = {
