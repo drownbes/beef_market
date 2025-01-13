@@ -109,6 +109,8 @@ in
         ExecStart = "${pkgs.beef_market}/bin/beef_market ${appConfig}";
         Restart = "always";
         WorkingDir = "/var/lib/beef_market";
+        User = cfg.user;
+        Group = cfg.user;
       };
     };
   };
